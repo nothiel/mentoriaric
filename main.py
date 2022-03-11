@@ -1,10 +1,8 @@
 import uuid
-from click import edit
 from fastapi import FastAPI
 from pydantic import BaseModel, SecretStr
 from starlette.responses import JSONResponse
 from typing import Optional
-import in_place
 
 
 app = FastAPI()
@@ -12,58 +10,79 @@ app = FastAPI()
 
 @app.get('/')
 def root():
-    return {"Hello": "World!"}
+    return {'Hello': 'World!'}
+
 
 # Quero criar uma API, onde ela terá quatro rotas:
+
 
 class User(BaseModel):
     login: str
     password: SecretStr
     nickname: str
 
+
 class UserModify(BaseModel):
     login: Optional[str]
     password: Optional[SecretStr]
     nickname: Optional[str]
 
+
 # 1- POST /user, que servirá para registrar um novo usuário
 
+
 @app.post('/user')
-def create_user(user: User):
-    id = uuid.uuid4()
+def create_user(user: User):   # cria função para criar usuario,
+    id = (
+        uuid.uuid4()
+    )   # ele cria uma variavel id, e vai usar o uuid para gerar esse id
     # Adicionar um usuario com senha, login, e nickname no arquivo de texto no seguinte padrão:
     # id;login;senha;nickname
-    file_line = f'{id};{user.login};{user.password.get_secret_value()};{user.nickname}\n' # isso não é uma boa pratica
-    
-    fout = open('banco.txt', 'a')
+    file_line = f'\n{id};{user.login};{user.password.get_secret_value()};{user.nickname}'   # isso não é uma boa pratica
+    # você cria uma variavel para mostrar o formato do que será salvo no banco
+    # ele adiciona todos os dados que vem da request em uma string
+    # eles são inseridos via uma requisição da web
 
-    fout.write(file_line)
-    fout.close()
+    fout = open('banco.txt', 'a')   # abre o banco em modo "append"
+
+    fout.write(file_line)   # e escreve essa linha na ultima linha do texto
+    fout.close()   # fecha o arquivo
     # em seguida, retornar o ID do usuario na mensagem
 
-    return JSONResponse({"Mesage": f"User created. ID: {id}"}, 201)
+    return JSONResponse(
+        {'Message': f'User created', 'id': str(id)}, 201
+    )   # retorna o id pro broder
 
 
 # 2- GET /user/{id}, que servirá para trazer informações do user que eu passar
 @app.get('/user/{id}')
 def get_user(id: str):
 
-    fin = open('banco.txt', 'r')
-    for line in fin:
-        line = line.strip('\n')
-        [id_banco, login, _, nickname] = line.split(';')
-        if id == id_banco:
-            fin.close()
-            return JSONResponse({'Usuario': {'id': id, 'login': login, 'nickname': nickname}}, 200)
-    fin.close()
-    return JSONResponse({"Message": "not found"}, 404)
-    
+    fin = open('banco.txt', 'r')   # abrir o "banco"
+    for line in fin:   # para cada linha dentro de "fin (que é o arquivo)"
+        line = line.strip('\n')   # ele retira os "\n" que tiver dentro
+        [id_banco, login, _, nickname] = line.split(
+            ';'
+        )   # ele vai separar uma string divida por ; e atribuir nas variáveis
+        if (
+            id == id_banco
+        ):   # se o id que foi passado no get for igual ao id que está no banco
+            fin.close()   # ele fecha o arquivo
+            return JSONResponse(
+                {'Usuario': {'id': id, 'login': login, 'nickname': nickname}},
+                200,
+            )   # e retorna os dados
+    fin.close()   # se acbaar todas as linhas do arquivo e ele não achar o id, ele fecha o arquivo
+    return JSONResponse(
+        {'Message': 'not found'}, 404
+    )   # e retorna "not found"
+
 
 # 3- PUT /user, que servirá para alterar algo do user (senha, login, nickname)
 
-@app.put('/user/{id}')
-def modify_user(id : str, modify_user: UserModify):
 
+@app.put('/user/{id}')
+def modify_user(id: str, modify_user: UserModify):
 
     if modify_user.login:
         posi_line = return_line_position(id, 'banco.txt')
@@ -73,7 +92,7 @@ def modify_user(id : str, modify_user: UserModify):
             line[1] = modify_user.login
             new_line = ';'.join(line)
             edit_line(position, 'banco.txt', new_line)
-            return JSONResponse({"Message": "login modified"})
+            return JSONResponse({'Message': 'login modified'})
 
     if modify_user.password:
         posi_line = return_line_position(id, 'banco.txt')
@@ -83,7 +102,7 @@ def modify_user(id : str, modify_user: UserModify):
             line[2] = modify_user.password
             new_line = ';'.join(line)
             edit_line(position, 'banco.txt', new_line)
-            return JSONResponse({"Message": "password modified"})
+            return JSONResponse({'Message': 'password modified'})
 
     if modify_user.nickname:
         posi_line = return_line_position(id, 'banco.txt')
@@ -93,11 +112,11 @@ def modify_user(id : str, modify_user: UserModify):
             line[3] = modify_user.nickname
             new_line = ';'.join(line)
             edit_line(position, 'banco.txt', new_line)
-            return JSONResponse({"Message": "nickname modified"})
+            return JSONResponse({'Message': 'nickname modified'})
 
     print(modify_user.login)
 
-    return JSONResponse({"Message":"Not found"}, 404)
+    return JSONResponse({'Message': 'Not found'}, 404)
 
 
 def return_line_position(id, filename):
@@ -107,14 +126,13 @@ def return_line_position(id, filename):
             line = line.strip('\n')
             idbanco = line.split(';')[0]
             if id == idbanco:
-                return index, line  
-        
+                return index, line
+
 
 def edit_line(position, filename, new_line):
 
     with open(filename, 'r') as file:
         all_lines = file.readlines()
-
 
     with open(filename, 'w') as file:
         all_lines[position] = new_line
@@ -127,11 +145,11 @@ def delete_line(position, filename):
     with open(filename, 'r') as file:
         all_lines = file.readlines()
 
-
     with open(filename, 'w') as file:
         del all_lines[position]
 
         file.write('\n'.join(all_lines))
+
 
 @app.delete('/user/{id}')
 def delete_user(id):
@@ -139,8 +157,6 @@ def delete_user(id):
     if line_posi:
         [position, _] = line_posi
         delete_line(position, 'banco.txt')
-        return JSONResponse({"Message":"User Deleted"}, 200)
+        return JSONResponse({'Message': 'User Deleted'}, 200)
 
-    return JSONResponse({"Message":"Not found"}, 404)
-
-    
+    return JSONResponse({'Message': 'Not found'}, 404)
