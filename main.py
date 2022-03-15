@@ -24,7 +24,7 @@ class User(BaseModel):
 
 class UserModify(BaseModel):
     login: Optional[str]
-    password: Optional[SecretStr]
+    password: Optional[str]
     nickname: Optional[str]
 
 
@@ -80,19 +80,20 @@ def get_user(id: str):
 
 # 3- PUT /user, que servirá para alterar algo do user (senha, login, nickname)
 
+@app.put('/user/{id}') # decorador do PUT, que pega o id passado no path
+def modify_user(id: str, modify_user: UserModify): # id que vem do path, modify_user que vem do payload
 
-@app.put('/user/{id}')
-def modify_user(id: str, modify_user: UserModify):
-
-    if modify_user.login:
-        posi_line = return_line_position(id, 'banco.txt')
-        if posi_line:
-            [position, line] = posi_line
-            line = line.strip('\n').split(';')
-            line[1] = modify_user.login
-            new_line = ';'.join(line)
-            edit_line(position, 'banco.txt', new_line)
-            return JSONResponse({'Message': 'login modified'})
+    if modify_user.login: # se existir login no modify_user
+        posi_line = return_line_position(id, 'banco.txt') # ele pega a posição da linha e a linha e coloca na variavel posi_line
+        # primeira posição da posi_line: numero da linha no texto, ex: se for a segunda linha, posição 1
+        # segunda posição da posi_line: é a string que estava na linha
+        if posi_line: # se posi_line não for none, ou seja, se existir
+            [position, line] = posi_line # desestrutura a lista para duas variaveis: position recebe a primeira posição da lista, line a segunda
+            line = line.strip('\n').split(';') # cria uma lista de valores, separando-as pelo ; 
+            line[1] = modify_user.login  # coloca o valor do login que recebemos na request no lugar do login que estava.
+            new_line = ';'.join(line) # cria uma string dnv, juntando toda a lista com um ";"
+            edit_line(position, 'banco.txt', new_line) #edita a linha que está na posição que foi encontrada no return_line_position
+            return JSONResponse({'Message': 'login modified'}) # retorna a resposta.
 
     if modify_user.password:
         posi_line = return_line_position(id, 'banco.txt')
@@ -113,8 +114,6 @@ def modify_user(id: str, modify_user: UserModify):
             new_line = ';'.join(line)
             edit_line(position, 'banco.txt', new_line)
             return JSONResponse({'Message': 'nickname modified'})
-
-    print(modify_user.login)
 
     return JSONResponse({'Message': 'Not found'}, 404)
 
@@ -137,7 +136,7 @@ def edit_line(position, filename, new_line):
     with open(filename, 'w') as file:
         all_lines[position] = new_line
 
-        file.write('\n'.join(all_lines))
+        file.write(''.join(all_lines))
 
 
 def delete_line(position, filename):
