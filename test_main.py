@@ -61,10 +61,7 @@ def test_post_with_a_invalid_payload():
     response_json = response.json()
 
     assert response.status_code == 422
-    assert (
-        return_line_position(response_json.get('id', None), 'banco.txt')
-        == None
-    )
+    assert not return_line_position(response_json.get('id', None), 'banco.txt')
 
     # esperamos que ele não grave nada
     # esperamos o status code 422
@@ -83,7 +80,7 @@ def test_delete_with_a_valid_id():
     response = teste.delete(f'/user/{id}')   # deletamos a linha disso no banco
 
     # assegurar que essa linha não existe mais
-    assert return_line_position(id, 'banco.txt') == None
+    assert not return_line_position(id, 'banco.txt')
 
     # retornar status_code 200
 
@@ -99,7 +96,7 @@ def test_delete_with_a_invalid_id():
     id = 'minhapica'
 
     # assegurar que ele não está no banco!
-    assert return_line_position(id, 'banco.txt') == None
+    assert not return_line_position(id, 'banco.txt')
 
     response = teste.delete(f'/user/{id}')
 
@@ -108,3 +105,46 @@ def test_delete_with_a_invalid_id():
 
     # mensagem = not found
     assert response.json() == {'Message': 'Not found'}
+
+
+
+def test_put_with_a_valid_id():
+    id = 'dc37dac7-9809-4c86-8ac9-070eb937d437'
+
+    # certificar que o id existe no banco
+    line_posi = return_line_position(id, 'banco.txt')
+    assert line_posi
+
+    # certificar que o campo que queremos foi alterado
+    [_, line] = line_posi # [1, <string>]
+
+    response = teste.put(f'/user/{id}', json={
+        'login': 'valdinelson'
+    })
+
+    [_, new_line] = return_line_position(id, 'banco.txt') # (1, <string>)
+
+    assert line != new_line
+
+    # certificar a exibição da mensagem de confirmação
+
+    assert response.json() == {'Message': 'login modified'}
+
+    # certificar o recebimento do status_code
+
+    assert response.status_code == 200
+
+def test_put_with_a_invalid_id():
+    # certificar que id não está no banco
+    id = 'joriscréudson'
+    assert not return_line_position(id, 'banco.txt')
+
+    response = teste.put(f'/user/{id}', json={
+        'login': 'fodasenvaiirmesmo'
+    })
+    # certificar exibição da mensagem de erro
+
+    assert response.json() == {'Message': 'Not found'}
+    # certificar 404
+
+    assert response.status_code == 404
