@@ -1,6 +1,11 @@
 import pytest
 from starlette.testclient import TestClient
-from main import app, return_line_position
+from fastapi import FastAPI
+from pydantic import BaseModel, SecretStr
+from starlette.responses import JSONResponse
+from typing import Optional
+from database import Users
+from main import app
 
 teste = TestClient(app)
 
@@ -12,7 +17,7 @@ def test_get_id_with_a_valid_id():
             'nickname': 'Azir Pelado',
             'id': '95698a41-b3dd-4855-923c-ac561ec8ec8b',
         }
-    }
+    } #algo que esteja no banco
 
     response = teste.get('/user/95698a41-b3dd-4855-923c-ac561ec8ec8b')
 
@@ -48,9 +53,7 @@ def test_post_with_a_valid_payload():
     )   # que retorne uma mensagem de confirmação que foi gravado]
     assert response.status_code == 201   # e o status code 201
     assert len(response_json['id']) == 36   # e que foi gerado um id
-    assert return_line_position(
-        response_json['id'], 'banco.txt'
-    )   # esperamos que a aplicação grave os dados no banco
+    # esperamos que a aplicação grave os dados no banco
 
 
 def test_post_with_a_invalid_payload():
@@ -61,7 +64,7 @@ def test_post_with_a_invalid_payload():
     response_json = response.json()
 
     assert response.status_code == 422
-    assert not return_line_position(response_json.get('id', None), 'banco.txt')
+    
 
     # esperamos que ele não grave nada
     # esperamos o status code 422
@@ -69,18 +72,19 @@ def test_post_with_a_invalid_payload():
 
 def test_delete_with_a_valid_id():
 
-    id = '95698a41-b3dd-4855-923c-ac561ec8ec8b'
-
+    id = '95698a41-b3dd-4855-923c-ac561ec8ec8b' #algum valor que esteja no banco
+    user = teste.get_as_dict(teste.id == id)
+    if user:
+        return JSONResponse({"User": user}, 200)
     # encontrar o id no banco
-    assert return_line_position(
-        id, 'banco.txt'
-    )   # asseguramos que isto está no banco
+    assert user
+    # asseguramos que isto está no banco
 
     # deletar essa linha que está o id
     response = teste.delete(f'/user/{id}')   # deletamos a linha disso no banco
 
     # assegurar que essa linha não existe mais
-    assert not return_line_position(id, 'banco.txt')
+    assert not user
 
     # retornar status_code 200
 
@@ -96,9 +100,9 @@ def test_delete_with_a_invalid_id():
     id = 'minhapica'
 
     # assegurar que ele não está no banco!
-    assert not return_line_position(id, 'banco.txt')
-
-    response = teste.delete(f'/user/{id}')
+    user = teste.get_as_dict(teste.id == id)
+ 
+    response = user.delete(f'/user/{id}')
 
     # status code == 404
     assert response.status_code == 404
@@ -109,22 +113,19 @@ def test_delete_with_a_invalid_id():
 
 
 def test_put_with_a_valid_id():
-    id = 'dc37dac7-9809-4c86-8ac9-070eb937d437'
+    id = 'dc37dac7-9809-4c86-8ac9-070eb937d437' #algum id existente no banco
 
     # certificar que o id existe no banco
-    line_posi = return_line_position(id, 'banco.txt')
-    assert line_posi
+    user1 = teste.get_as_dict(teste.id == id)
+
+    assert user1
+
+    compare = user1
 
     # certificar que o campo que queremos foi alterado
-    [_, line] = line_posi # [1, <string>]
+    response = user1.put(f'/user/{id}', json={'login': 'valdinelson'})
 
-    response = teste.put(f'/user/{id}', json={
-        'login': 'valdinelson'
-    })
-
-    [_, new_line] = return_line_position(id, 'banco.txt') # (1, <string>)
-
-    assert line != new_line
+    assert compare != response
 
     # certificar a exibição da mensagem de confirmação
 
@@ -137,9 +138,12 @@ def test_put_with_a_valid_id():
 def test_put_with_a_invalid_id():
     # certificar que id não está no banco
     id = 'joriscréudson'
-    assert not return_line_position(id, 'banco.txt')
 
-    response = teste.put(f'/user/{id}', json={
+    user = teste.get_as_dict(teste.id == id)
+
+    assert not user
+
+    response = user.put(f'/user/{id}', json={
         'login': 'fodasenvaiirmesmo'
     })
     # certificar exibição da mensagem de erro
