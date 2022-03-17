@@ -1,0 +1,3 @@
+fastapi # ja baixa o pydantic 
+uvicorn # servidor
+peewee

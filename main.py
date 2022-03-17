@@ -1,8 +1,8 @@
-import uuid
 from fastapi import FastAPI
 from pydantic import BaseModel, SecretStr
 from starlette.responses import JSONResponse
 from typing import Optional
+from database import Users
 
 
 app = FastAPI()
@@ -33,21 +33,10 @@ class UserModify(BaseModel):
 
 @app.post('/user')
 def create_user(user: User):   # cria função para criar usuario,
-    id = (
-        uuid.uuid4()
-    )   # ele cria uma variavel id, e vai usar o uuid para gerar esse id
-    # Adicionar um usuario com senha, login, e nickname no arquivo de texto no seguinte padrão:
-    # id;login;senha;nickname
-    file_line = f'\n{id};{user.login};{user.password.get_secret_value()};{user.nickname}'   # isso não é uma boa pratica
-    # você cria uma variavel para mostrar o formato do que será salvo no banco
-    # ele adiciona todos os dados que vem da request em uma string
-    # eles são inseridos via uma requisição da web
 
-    fout = open('banco.txt', 'a')   # abre o banco em modo "append"
-
-    fout.write(file_line)   # e escreve essa linha na ultima linha do texto
-    fout.close()   # fecha o arquivo
-    # em seguida, retornar o ID do usuario na mensagem
+    query = Users.insert({Users.login: user.login, Users.password: user.password, Users.nickname: user.nickname}) 
+    # isso acima equivale a : insert into users(login, password, nickaname) values (user.login, user.password, user.nickname)
+    id = query.execute()
 
     return JSONResponse(
         {'Message': f'User created', 'id': str(id)}, 201
@@ -56,23 +45,12 @@ def create_user(user: User):   # cria função para criar usuario,
 
 # 2- GET /user/{id}, que servirá para trazer informações do user que eu passar
 @app.get('/user/{id}')
-def get_user(id: str):
+def get_user(id: int):
 
-    fin = open('banco.txt', 'r')   # abrir o "banco"
-    for line in fin:   # para cada linha dentro de "fin (que é o arquivo)"
-        line = line.strip('\n')   # ele retira os "\n" que tiver dentro
-        [id_banco, login, _, nickname] = line.split(
-            ';'
-        )   # ele vai separar uma string divida por ; e atribuir nas variáveis
-        if (
-            id == id_banco
-        ):   # se o id que foi passado no get for igual ao id que está no banco
-            fin.close()   # ele fecha o arquivo
-            return JSONResponse(
-                {'Usuario': {'id': id, 'login': login, 'nickname': nickname}},
-                200,
-            )   # e retorna os dados
-    fin.close()   # se acbaar todas as linhas do arquivo e ele não achar o id, ele fecha o arquivo
+    user = Users.get_as_dict(Users.id == id)
+    if user:
+        return JSONResponse({"Usuario": user}, 200)
+
     return JSONResponse(
         {'Message': 'not found'}, 404
     )   # e retorna "not found"
