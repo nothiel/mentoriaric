@@ -10,10 +10,12 @@ class Users(Model): # create table users (
     nickname = CharField(max_length=50) # nickname varchar(50) )
 
     @classmethod
-    def get_as_dict(cls, expr):
-        query = cls.select().where(expr).dicts()
-        return query.get()
-
+    def get_as_dict(cls, where):
+        try: 
+            query = cls.select().where(where).dicts()
+            return query.get()
+        except DoesNotExist:
+            return None
     class Meta:
         database = db # use users
 
