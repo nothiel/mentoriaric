@@ -1,7 +1,8 @@
 import pytest
 from starlette.testclient import TestClient
-from database import Users
-from main import app
+
+from mentoriaric.database.database import Users
+from mentoriaric.main import app
 
 teste = TestClient(app)
 
@@ -34,6 +35,7 @@ def test_post_with_a_invalid_payload():
 
     # esperamos o status code 422
 
+
 def test_get_id_with_a_valid_id():
 
     response = teste.get('/user/1')
@@ -63,9 +65,7 @@ def test_put_with_a_valid_id():
 
     assert user
 
-    response = teste.put(f'/user/{_id}', json={
-        'login': 'valdinelson'
-    })
+    response = teste.put(f'/user/{_id}', json={'login': 'valdinelson'})
 
     assert user != Users.get_as_dict(Users.id == _id)
     # certificar a exibição da mensagem de confirmação
@@ -76,15 +76,14 @@ def test_put_with_a_valid_id():
 
     assert response.status_code == 200
 
+
 def test_put_with_a_invalid_id():
     # certificar que id não está no banco
     _id = 1239234324
 
     assert not Users.get_as_dict(Users.id == _id)
 
-    response = teste.put(f'/user/{_id}', json={
-        'login': 'fodasenvaiirmesmo'
-    })
+    response = teste.put(f'/user/{_id}', json={'login': 'fodasenvaiirmesmo'})
     # certificar exibição da mensagem de erro
 
     assert response.json() == {'Message': 'Not found'}
@@ -93,15 +92,15 @@ def test_put_with_a_invalid_id():
     assert response.status_code == 404
 
 
-
-
 def test_delete_with_a_valid_id():
 
     _id = 1
 
     assert Users.get_as_dict(Users.id == _id)
 
-    response = teste.delete(f'/user/{_id}')   # deletamos a linha disso no banco
+    response = teste.delete(
+        f'/user/{_id}'
+    )   # deletamos a linha disso no banco
 
     assert not Users.get_as_dict(Users.id == _id)
 
