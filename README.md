@@ -1,6 +1,6 @@
 # MentoriaRic: Python & FastAPI & SQLite
 
-<img src='./docs/assets/python%20logo%20brabissima.png'/>
+<p align="center"><img src='./docs/assets/python%20logo%20brabissima.png' width="300" height="300"/></p>
 
 
 Esse projeto consiste em estudos para a criação de API utilizando Python com banco de dados, inicialmente o SQLite.
